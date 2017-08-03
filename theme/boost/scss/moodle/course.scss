@@ -85,7 +85,7 @@
             min-height: 2em;
 
             > a {
-                display: block;
+                display: inline-block;
                 text-indent: -31px;
                 padding-left: 31px;
             }
@@ -205,7 +205,7 @@
 }
 
 .section .activity .activityinstance .groupinglabel {
-    padding-left: 30px;
+    padding-left: 0;
 }
 
 .section .activity .availabilityinfo,

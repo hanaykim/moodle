@@ -35,6 +35,10 @@ img.small-logo {
     }
 }
 
+#page-course-view-weeks .section .activity .activityinstance .groupinglabel {
+    padding-left: 0px;
+}
+
 /* Custom CSS Settings
 -------------------------*/
 [[setting:customcss]]

@@ -745,7 +745,6 @@ class core_course_renderer extends plugin_renderer_base {
                 $data['isfullinfo'] = 1;
             }
         }
-
         return $this->render_from_template('core/availability_info', $data);
     }
 
@@ -755,10 +754,22 @@ class core_course_renderer extends plugin_renderer_base {
      *
      * @param cm_info $mod
      * @param array $displayoptions
+     * @param boolean $isavailabilitypopup
      * @return string
      */
-    public function course_section_cm_availability(cm_info $mod, $displayoptions = array()) {
-        global $CFG;
+    public function course_section_cm_availability(cm_info $mod, $displayoptions = array(), $isavailabilitypopup = false) {
+        global $CFG, $USER;
+        // Get default setting for displaying access restrictions.
+        if ($CFG->availabilitydefault) {
+            // Default is expanded restrictions.
+            $defaultrestrictionspref = 'expandrestrictions';
+        } else {
+            $defaultrestrictionspref = 'collapserestrictions';
+        }
+
+        // Get the access restrictions view preference from the USER preferences if it exists.
+        $restrictionspref = get_user_preferences('expandcollapserestrictions', $defaultrestrictionspref, $USER);
+
         $output = '';
         if (!$mod->is_visible_on_course_page()) {
             return $output;
@@ -789,21 +800,69 @@ class core_course_renderer extends plugin_renderer_base {
             $output .= $this->availability_info(get_string('hiddenoncoursepage'), 'isstealth');
         }
         if ($canviewhidden && !empty($CFG->enableavailability)) {
-            // Display information about conditional availability.
-            // Don't add availability information if user is not editing and activity is hidden.
-            if ($mod->visible || $this->page->user_is_editing()) {
-                $hidinfoclass = 'isrestricted isfullinfo';
-                if (!$mod->visible) {
-                    $hidinfoclass .= ' hide';
+            if ($restrictionspref === 'collapserestrictions') {
+                // Display information about conditional availability only inside the access restrictions popup.
+                // Don't add availability information if user is not editing and activity is hidden.
+                if ($isavailabilitypopup && ($mod->visible || $this->page->user_is_editing())) {
+                    $hidinfoclass = 'isrestricted isfullinfo';
+                    if (!$mod->visible) {
+                        $hidinfoclass .= ' hide';
+                    }
+                    $ci = new \core_availability\info_module($mod);
+                    $fullinfo = $ci->get_full_information();
+                    if ($fullinfo) {
+                        $formattedinfo = \core_availability\info::format_info(
+                                $fullinfo, $mod->get_course());
+                        // Replaces output with access restriction description (removes hidden/stealth tags).
+                        $output = $formattedinfo;
+                    }
                 }
-                $ci = new \core_availability\info_module($mod);
-                $fullinfo = $ci->get_full_information();
-                if ($fullinfo) {
-                    $formattedinfo = \core_availability\info::format_info(
-                            $fullinfo, $mod->get_course());
-                    $output .= $this->availability_info($formattedinfo, $hidinfoclass);
+            } else if ($restrictionspref === 'expandrestrictions') {
+                // Display information about conditional availability.
+                // Don't add availability information if user is not editing and activity is hidden.
+                if ($mod->visible || $this->page->user_is_editing()) {
+                    $hidinfoclass = 'isrestricted isfullinfo';
+                    if (!$mod->visible) {
+                        $hidinfoclass .= ' hide';
+                    }
+                    $ci = new \core_availability\info_module($mod);
+                    $fullinfo = $ci->get_full_information();
+                    if ($fullinfo) {
+                        $formattedinfo = \core_availability\info::format_info(
+                                $fullinfo, $mod->get_course());
+                        // Get formatted availability info with label/tag.
+                        $newoutput = $this->availability_info($formattedinfo, $hidinfoclass);
+                        // Removes closing tag so access restriction information can be added to the div.
+                        $newoutput = preg_replace("/<\/div[^>]*\>/i", "", $newoutput);
+                        $newoutput .= $formattedinfo;
+                        // Add to output so far.
+                        $output .= $newoutput;
+                        // Closing tag re-added here.
+                        $output .= html_writer::end_tag('div');
+                    }
                 }
             }
+        }
+
+        return $output;
+    }
+
+    /**
+     * Renders HTML to show course module access restriction tag (for someone who isn't allowed
+     * to see the activity itself, or for staff).
+     *
+     * @param cm_info $mod
+     * @return string
+     */
+    public function course_section_cm_restricted_tag(cm_info $mod) {
+        $output = '';
+        $hidinfoclass = 'isrestricted isfullinfo';
+        $ci = new \core_availability\info_module($mod);
+        $fullinfo = $ci->get_full_information();
+        if ($fullinfo) {
+            $formattedinfo = \core_availability\info::format_info(
+                    $fullinfo, $mod->get_course());
+            $output .= $this->availability_info($formattedinfo, $hidinfoclass);
         }
         return $output;
     }
@@ -852,6 +911,19 @@ class core_course_renderer extends plugin_renderer_base {
      * @return string
      */
     public function course_section_cm($course, &$completioninfo, cm_info $mod, $sectionreturn, $displayoptions = array()) {
+        global $PAGE, $USER;
+        // Get default setting for displaying access restrictions.
+        if ($CFG->availabilitydefault) {
+            // Default is expanded restrictions.
+            $defaultrestrictionspref = 'expandrestrictions';
+        } else {
+            $defaultrestrictionspref = 'collapserestrictions';
+        }
+
+        // Get the access restrictions view preference from the USER preferences if it exists.
+        $restrictionspref = get_user_preferences('expandcollapserestrictions', $defaultrestrictionspref, $USER);
+        $PAGE->requires->js_call_amd('core_course/accessrestrict', 'init');
+
         $output = '';
         // We return empty string (because course module will not be displayed at all)
         // if:
@@ -889,17 +961,39 @@ class core_course_renderer extends plugin_renderer_base {
         // Display the link to the module (or do nothing if module has no url)
         $cmname = $this->course_section_cm_name($mod, $displayoptions);
 
+        // Create availability conditions popup.
+        $availabilityhtml = $this->course_section_cm_availability($mod, $displayoptions, true);
+        $availabilitypopup = '';
+
+        if (!empty($availabilityhtml)) {
+            $restrictedtag = $this->course_section_cm_restricted_tag($mod);
+            $link = html_writer::link('#', $restrictedtag, array('aria-haspopup' => 'true'));
+            $availabilitypopup = html_writer::span($link, 'groupinglabel availabilitypopup',
+                array('data-availabilityconditions' => $availabilityhtml));
+        }
+
         if (!empty($cmname)) {
             // Start the div for the activity title, excluding the edit icons.
             $output .= html_writer::start_tag('div', array('class' => 'activityinstance'));
             $output .= $cmname;
 
-
-            // Module can put text after the link (e.g. forum unread)
+            // Module can put text after the link (e.g. forum unread).
             $output .= $mod->afterlink;
 
+            // Display restrictions tags/labels next to the activity title if viewing collapsed restrictions.
+            if ($restrictionspref === 'collapserestrictions') {
+                if ($mod->visible || $this->page->user_is_editing()) {
+                    $output .= $availabilitypopup;
+                }
+
+                // Show availability info (if module is not available). Only used to show hidden and stealth tags.
+                if (!$mod->visible || $mod->is_stealth()) {
+                    $output .= $this->course_section_cm_availability($mod, $displayoptions);
+                }
+            }
+
             // Closing the tag which contains everything but edit icons. Content part of the module should not be part of this.
-            $output .= html_writer::end_tag('div'); // .activityinstance
+            $output .= html_writer::end_tag('div'); // .activityinstance.
         }
 
         // If there is content but NO link (eg label), then display the
@@ -927,8 +1021,11 @@ class core_course_renderer extends plugin_renderer_base {
             $output .= html_writer::span($modicons, 'actions');
         }
 
-        // Show availability info (if module is not available).
-        $output .= $this->course_section_cm_availability($mod, $displayoptions);
+        // Display restrictions after icons if viewing expanded restrictions.
+        if ($restrictionspref === 'expandrestrictions') {
+            // Show availability info (if module is not available).
+            $output .= $this->course_section_cm_availability($mod, $displayoptions);
+        }
 
         // If there is content AND a link, then display the content here
         // (AFTER any icons). Otherwise it was displayed before

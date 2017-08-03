@@ -4243,6 +4243,69 @@ class settings_navigation extends navigation_node {
     }
 
     /**
+     * Adds restrictions toggle to course administration navigation.
+     *
+     * @param navigation_node $coursenode
+     */
+    protected function add_restrictionstoggle($coursenode) {
+        global $USER;
+
+        // Get default setting for displaying access restrictions.
+        if ($CFG->availabilitydefault) {
+            // Default is expanded restrictions.
+            $defaultrestrictionspref = 'expandrestrictions';
+        } else {
+            $defaultrestrictionspref = 'collapserestrictions';
+        }
+
+        // Determine if user wants to see expanded or collapsed restrictions.
+        // See if there is a GET param trying to change restrictions view preference.
+        $newrestrictionspref = optional_param('restrictions', '', PARAM_ALPHA);
+        if ($newrestrictionspref !== 'collapserestrictions' && $newrestrictionspref !== 'expandrestrictions') {
+            $newrestrictionspref = '';
+        }
+
+        // Get the existing preference from the USER preferences if it exists.
+        $restrictionspref = get_user_preferences('expandcollapserestrictions', $defaultrestrictionspref, $USER);
+        if ($restrictionspref !== 'collapserestrictions' && $restrictionspref !== 'expandrestrictions') {
+            $restrictionspref = 'collapserestrictions';
+        }
+
+        // Check if the GET param is valid and different from the existing restrictions view preference.
+        if ($newrestrictionspref !== '' && $newrestrictionspref !== $restrictionspref) {
+            require_sesskey();
+            // If so, replace the restrictions preference and the $restrictionspref variable.
+            set_user_preference('expandcollapserestrictions', $newrestrictionspref, $USER);
+            $restrictionspref = $newrestrictionspref;
+        }
+
+        if ($this->page->url->compare(new moodle_url('/course/view.php'), URL_MATCH_BASE)) {
+            // We are on the course page, retain the current page params e.g. section.
+            $baseurl = clone($this->page->url);
+            $baseurl->param('sesskey', sesskey());
+        } else {
+            // Edit on the main course page.
+            $course = $this->page->course;
+            $baseurl = new moodle_url('/course/view.php',
+                    array('id' => $course->id, 'return' => $this->page->url->out_as_local_url(false), 'sesskey' => sesskey()));
+        }
+        $restrictionsurl = clone($baseurl);
+
+        if ($restrictionspref === 'collapserestrictions') {
+            $restrictionsurl->param('restrictions', 'expandrestrictions');
+            $restrictionstring = get_string('expandrestrictions');
+            $coursenode->add($restrictionstring, $restrictionsurl, self::TYPE_SETTING,
+                    null, 'restrictions', new pix_icon('i/resize_full', ''));
+        } else {
+            $restrictionsurl->param('restrictions', 'collapserestrictions');
+            $restrictionstring = get_string('collapserestrictions');
+            $coursenode->add($restrictionstring, $restrictionsurl, self::TYPE_SETTING,
+                    null, 'restrictions', new pix_icon('i/resize_small', ''));
+        }
+        return $coursenode;
+    }
+
+    /**
      * This function loads the course settings that are available for the user
      *
      * @param bool $forceopen If set to true the course node will be forced open
@@ -4291,6 +4354,11 @@ class settings_navigation extends navigation_node {
                 $editstring = get_string('turneditingon');
             }
             $coursenode->add($editstring, $editurl, self::TYPE_SETTING, null, 'turneditingonoff', new pix_icon('i/edit', ''));
+
+            if ($CFG->enableavailability) {
+                // Add restrictions toggle.
+                $this->add_restrictionstoggle($coursenode);
+            }
         }
 
         if ($adminoptions->editcompletion) {

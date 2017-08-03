@@ -23,8 +23,8 @@
  * @since      3.3
  */
 define(['jquery', 'core/ajax', 'core/templates', 'core/notification', 'core/str', 'core/url', 'core/yui',
-        'core/modal_factory', 'core/modal_events', 'core/key_codes'],
-    function($, ajax, templates, notification, str, url, Y, ModalFactory, ModalEvents, KeyCodes) {
+        'core/modal_factory', 'core/modal_events', 'core/key_codes', 'core_course/accessrestrict'],
+    function($, ajax, templates, notification, str, url, Y, ModalFactory, ModalEvents, KeyCodes, AccessRestrict) {
         var CSS = {
             EDITINPROGRESS: 'editinprogress',
             SECTIONDRAGGABLE: 'sectiondraggable',
@@ -159,6 +159,8 @@ define(['jquery', 'core/ajax', 'core/templates', 'core/notification', 'core/str'
          * @param {Boolean} openmenu whether to open menu - this can be used when re-initiating menu after indent action was pressed
          */
         var initActionMenu = function(elementid, openmenu) {
+            // Initialize access restriction popup.
+            AccessRestrict.init();
             // Initialise action menu in the new activity.
             Y.use('moodle-course-coursebase', function() {
                 M.course.coursebase.invoke_function('setup_for_resource', '#' + elementid);

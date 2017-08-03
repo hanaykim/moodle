@@ -268,6 +268,8 @@ class icon_system_fontawesome extends icon_system_font {
             'core:i/reload' => 'fa-refresh',
             'core:i/report' => 'fa-area-chart',
             'core:i/repository' => 'fa-hdd-o',
+            'core:i/resize_full' => 'fa-expand',
+            'core:i/resize_small' => 'fa-compress',
             'core:i/restore' => 'fa-level-up',
             'core:i/return' => 'fa-arrow-left',
             'core:i/risk_config' => 'fa-exclamation text-muted',

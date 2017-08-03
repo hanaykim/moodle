@@ -23,6 +23,7 @@
  */
 
 $string['abouttobeinstalled'] = 'about to be installed';
+$string['accessrestrictions'] = 'Access restrictions';
 $string['action'] = 'Action';
 $string['actionchoice'] = 'What do you want to do with the file \'{$a}\'?';
 $string['actions'] = 'Actions';
@@ -252,6 +253,7 @@ $string['closebuttontitle'] = 'Close';
 $string['collapse'] = 'Collapse';
 $string['collapseall'] = 'Collapse all';
 $string['collapsecategory'] = 'Collapse {$a}';
+$string['collapserestrictions'] = 'Collapse restriction conditions';
 $string['commentincontext'] = 'Find this comment in context';
 $string['comments'] = 'Comments';
 $string['commentscount'] = 'Comments ({$a})';
@@ -781,6 +783,7 @@ $string['existingteachers'] = 'Existing teachers';
 $string['expand'] = 'Expand';
 $string['expandall'] = 'Expand all';
 $string['expandcategory'] = 'Expand {$a}';
+$string['expandrestrictions'] = 'Expand restriction conditions';
 $string['explanation'] = 'Explanation';
 $string['extendenrol'] = 'Extend enrolment (individual)';
 $string['extendperiod'] = 'Extended period';

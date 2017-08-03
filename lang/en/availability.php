@@ -25,11 +25,15 @@
 $string['accessrestrictions'] = 'Access restrictions';
 $string['addrestriction'] = 'Add restriction...';
 $string['and'] = 'and';
+$string['availabilitydefault'] = 'Default restricted access';
+$string['availabilitydefault_desc'] = 'The default setting for displaying access restrictions for activities and resources. Requires restricted access to be enabled.';
+$string['collapserestrictions'] = 'Collapse access restrictions';
 $string['condition_group'] = 'Restriction set';
 $string['condition_group_info'] = 'Add a set of nested restrictions to apply complex logic.';
 $string['enableavailability'] = 'Enable restricted access';
 $string['enableavailability_desc'] = 'When enabled, this lets you set conditions (based on date, grade, or completion) that control whether an activity or resource can be accessed.';
 $string['error_list_nochildren'] = 'Restriction sets should contain at least one condition.';
+$string['expandrestrictions'] = 'Expand access restrictions';
 $string['hidden_marker'] = '(hidden otherwise)';
 $string['hidden_individual'] = 'Hidden entirely if user does not meet this condition';
 $string['invalid'] = 'Please set';
